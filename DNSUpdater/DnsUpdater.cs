@@ -72,7 +72,6 @@ namespace DNSUpdater
 
             var secret = this.config.GetValue<string>("secret");
             var hash = Helper.Helper.CreateHash(fqdn + ":" + secret);
-            Console.WriteLine($"{fqdn}-{hash}");
 
             if (key != hash.ToLower())
             {
