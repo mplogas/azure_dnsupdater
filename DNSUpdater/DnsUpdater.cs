@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Management.Dns.Fluent.Models;
 using Microsoft.Azure.Management.Fluent;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -71,30 +72,13 @@ namespace DNSUpdater
 
             var secret = this.config.GetValue<string>("secret");
             var hash = Helper.Helper.CreateHash(fqdn + ":" + secret);
+            Console.WriteLine($"{fqdn}-{hash}");
 
             if (key != hash.ToLower())
             {
                 log.LogError($"key does not match, logged IP {newIp}, requested domain {fqdn}");
                 return new BadRequestObjectResult("malformed request. please check logs.");
             }
-            string currentIp = "";
-
-            try
-            {
-                currentIp = (await Dns.GetHostEntryAsync(fqdn)).AddressList.FirstOrDefault().ToString();
-            }
-            catch (SocketException e)
-            {
-                log.LogWarning($"Domain {fqdn} does not exist!");
-                return new BadRequestObjectResult("malformed request. please check logs.");
-            }
-
-            if (newIp == currentIp)
-            {
-                log.LogInformation($"IP has not changed. logged IP {newIp}");
-                return new OkObjectResult(newIp);
-            }
-
             
             try
             {
@@ -103,20 +87,48 @@ namespace DNSUpdater
                 if (Uri.CheckHostName(fqdn).Equals(UriHostNameType.Dns))
                 {
                     var parts = fqdn.Split(".");
-                    // for now its only subdomain.domain.tld
-                    if(parts.Length == 3)
+                    if(parts.Length > 2)
                     {
-                        var rootDnsZone = await this.azureClient.DnsZones.GetByResourceGroupAsync(rgName, $"{parts[1]}.{parts[2]}");
-                        rootDnsZone = rootDnsZone.Update()
-                            .DefineARecordSet(parts[0])
-                            .WithIPv4Address(newIp)
-                            .WithTimeToLive(300)
-                            .Attach()
-                            .Apply();
+                        var domain = $"{parts[parts.Length - 2]}.{parts[parts.Length - 1]}";
+                        var subdomain = fqdn.Replace("." + domain, "");
 
-                        log.LogInformation($"IP changed. logged IP {newIp}");
-                        return new OkObjectResult(newIp);
-                    } else
+                        var rootDnsZone = await this.azureClient.DnsZones.GetByResourceGroupAsync(rgName, domain);
+                        var record = rootDnsZone.ListRecordSets().FirstOrDefault(r => r.Fqdn.Equals(fqdn + ".", StringComparison.InvariantCultureIgnoreCase)); //fqdn are returned with a tailing dot, read: as proper fqdn
+
+                        if (record != null) 
+                        {
+                            switch (record.RecordType)
+                            {
+                                case RecordType.A:
+                                    var aRec = record.Inner.ARecords.Where(r => r.Ipv4Address.Equals(newIp, StringComparison.InvariantCultureIgnoreCase));
+                                    if (aRec != null)
+                                    {
+                                        log.LogInformation($"IP has not changed. logged IP {newIp}");
+                                        return new OkObjectResult("no change");
+                                    } else
+                                    {
+                                        rootDnsZone = rootDnsZone.Update()
+                                            .DefineARecordSet(subdomain)
+                                            .WithIPv4Address(newIp)
+                                            .WithTimeToLive(300)
+                                            .Attach()
+                                            .Apply();
+
+                                        log.LogInformation($"IP changed. logged IP {newIp}");
+                                        return new OkObjectResult(newIp);
+                                    }
+                                default:
+                                    //if you want to update MX records, create a new case. keep in mind, MX requires prio
+                                    log.LogInformation($"Tried to update a non-A record. logged IP {newIp}, requested domain {fqdn}");
+                                    return new BadRequestObjectResult("unexpected request. please check logs.");
+                            }
+                        } else
+                        {
+                            log.LogWarning($"Domain {fqdn} is not managed in Azure!");
+                            return new BadRequestObjectResult("unexpected request. please check logs.");
+                        }
+                    }
+                    else
                     {
                         throw new ApplicationException($"unexpected fqdn length: {fqdn}");
                     }
