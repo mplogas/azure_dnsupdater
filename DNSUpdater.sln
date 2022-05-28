@@ -7,7 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DNSUpdater", "DNSUpdater\DN
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Helper", "DNSUpdater.Helper\DNSUpdater.Helper.csproj", "{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Console", "DNSUpdater.Console\DNSUpdater.Console.csproj", "{CA02DBC5-DDED-458F-A402-A60C734627C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.MockDDNs", "DNSUpdater.MockDDNs\DNSUpdater.MockDDNs.csproj", "{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Library", "DNSUpdater.Library\DNSUpdater.Library.csproj", "{13C93B6E-5446-45B5-8BA5-26D44287CBB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Console", "DNSUpdater.Console\DNSUpdater.Console.csproj", "{CDBED030-A3BB-4F47-8E43-C508F26601C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +27,18 @@ Global
 		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
