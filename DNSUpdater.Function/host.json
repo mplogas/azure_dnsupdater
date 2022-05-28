@@ -1,0 +1,20 @@
+{
+    "version": "2.0",
+    "logging": {
+        "applicationInsights": {
+            "samplingSettings": {
+                "isEnabled": true,
+                "excludedTypes": "Request"
+            }
+        },
+        "logLevel": {
+            "Update": "Debug",
+            "DNSUpdater.Library.Services.AzureDnsService": "Debug"
+        }
+    },
+    "extensions": {
+        "http": {
+            "routePrefix": "nic"
+        }
+    }
+}

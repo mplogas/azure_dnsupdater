@@ -141,6 +141,7 @@ namespace DNSUpdater.Library.Services
         nochg,
         nohost,
         notfqdn,
+        badauth,
         othererr
     }
 }
