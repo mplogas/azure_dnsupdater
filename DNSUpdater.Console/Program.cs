@@ -1,4 +1,5 @@
-﻿using DNSUpdater.Library.Services;
+﻿using System.Runtime.CompilerServices;
+using DNSUpdater.Library.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -56,6 +57,9 @@ namespace DNSUpdater.Console
             var logger = provider.GetRequiredService<ILogger<Program>>();
             var factory = provider.GetRequiredService<IDnsServiceFactory>();
             var service = factory.GetDnsService();
+
+            var isKnown = await service.IsKnown(config["fqdn"]);
+            
             var result = await service.Update(config["fqdn"], config["ip"]);
 
             logger.LogDebug($"Result: {result}");
