@@ -40,7 +40,10 @@ namespace DNSUpdater.Library.Services
             try
             {
                 var domain = DisectFqdn(fqdn);
-                var record = await GetRecordSet(domain);
+
+                var rootDnsZone = await this.client.DnsZones.GetByResourceGroupAsync(rgName, domain.domain);
+                var record = rootDnsZone.ListRecordSets().FirstOrDefault(r =>
+                    r.Fqdn.Equals(fqdn + ".", StringComparison.InvariantCultureIgnoreCase));
 
                 if (record != null)
                 {
@@ -56,14 +59,13 @@ namespace DNSUpdater.Library.Services
                             }
                             else
                             {
-                                // TODO: vorm essen hier
-                                // var rootDnsZone = record. .Update()
-                                //     .DefineARecordSet(subdomain)
-                                //     .WithIPv4Address(newIp)
-                                //     .WithTimeToLive(300)
-                                //     .Attach()
-                                //     .Apply();
-                                
+                                var dnsZone = rootDnsZone.Update()
+                                    .DefineARecordSet(domain.subdomain)
+                                    .WithIPv4Address(ip)
+                                    .WithTimeToLive(300)
+                                    .Attach()
+                                    .Apply();
+
                                 this.logger.LogInformation($"IP update finished. Domain: {domain.fqdn}, ip: {ip}");
                                 return UpdateStatus.good;
                             }
@@ -78,10 +80,20 @@ namespace DNSUpdater.Library.Services
                         case RecordType.SRV:
                         case RecordType.TXT:
                         default:
-                            this.logger.LogWarning($"Tried to update a non-A record. RecordType {record.RecordType}, domain: {domain.fqdn}, ip: {ip}");
+                            this.logger.LogWarning(
+                                $"Tried to update a non-A record. RecordType {record.RecordType}, domain: {domain.fqdn}, ip: {ip}");
                             return UpdateStatus.nohost;
                     }
                 }
+                else
+                {
+                    return UpdateStatus.nohost;
+                }
+            }
+            catch (ApplicationException e)
+            {
+                this.logger.LogError(e, $"Failed to parse fqdn.  Domain: {fqdn}, ip: {ip}");
+                return UpdateStatus.notfqdn;
             }
             catch (Exception e)
             {
