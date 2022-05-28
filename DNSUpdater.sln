@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31129.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DNSUpdater", "DNSUpdater\DNSUpdater.csproj", "{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.MockDDNs", "DNSUpdater.MockDDNs\DNSUpdater.MockDDNs.csproj", "{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Library", "DNSUpdater.Library\DNSUpdater.Library.csproj", "{13C93B6E-5446-45B5-8BA5-26D44287CBB1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Console", "DNSUpdater.Console\DNSUpdater.Console.csproj", "{CDBED030-A3BB-4F47-8E43-C508F26601C8}"
@@ -19,14 +15,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D9FD8853-566A-4C67-8F02-9B7FA3E607DE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
