@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31129.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DNSUpdater", "DNSUpdater\DNSUpdater.csproj", "{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Library", "DNSUpdater.Library\DNSUpdater.Library.csproj", "{13C93B6E-5446-45B5-8BA5-26D44287CBB1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Helper", "DNSUpdater.Helper\DNSUpdater.Helper.csproj", "{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Console", "DNSUpdater.Console\DNSUpdater.Console.csproj", "{CDBED030-A3BB-4F47-8E43-C508F26601C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Console", "DNSUpdater.Console\DNSUpdater.Console.csproj", "{CA02DBC5-DDED-458F-A402-A60C734627C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNSUpdater.Function", "DNSUpdater.Function\DNSUpdater.Function.csproj", "{2E2D21C2-9C45-4D17-84CE-3C3ABF820F12}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,18 +15,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{001A98C4-85CF-4FA0-BB6C-D3802A915CC4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AEE3A2D0-15F7-4D42-B712-4E67B4F35707}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CA02DBC5-DDED-458F-A402-A60C734627C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13C93B6E-5446-45B5-8BA5-26D44287CBB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDBED030-A3BB-4F47-8E43-C508F26601C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E2D21C2-9C45-4D17-84CE-3C3ABF820F12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E2D21C2-9C45-4D17-84CE-3C3ABF820F12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E2D21C2-9C45-4D17-84CE-3C3ABF820F12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E2D21C2-9C45-4D17-84CE-3C3ABF820F12}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
