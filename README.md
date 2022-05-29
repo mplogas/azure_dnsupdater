@@ -5,15 +5,14 @@
 
 **Use-Case:** Ubiquiti USG / Ubiquiti UDM dynamic DNS feature.
 
-    ![image](https://user-images.githubusercontent.com/842121/170864950-cf8e85b2-8dbb-4cb9-a284-f36d4f9bee2a.png)
-
+![image](https://user-images.githubusercontent.com/842121/170864950-cf8e85b2-8dbb-4cb9-a284-f36d4f9bee2a.png)
 
 ### Setup
 
 1. Set up you DNS Zones in Azure
 2. Set up your Azure Function App (v4/.NET6, consumption plan, Application Insights enabled)
 
-    ![image](https://user-images.githubusercontent.com/842121/170865030-fdb026b2-fb98-4d1f-af53-73e8c2f1657d.png)
+![image](https://user-images.githubusercontent.com/842121/170865030-fdb026b2-fb98-4d1f-af53-73e8c2f1657d.png)
 
 3. Deploy this Azure Function to your Function App resource and configure Application Settings accordingly
 
@@ -32,8 +31,7 @@ _detailed walk-through:_ https://docs.microsoft.com/en-us/azure/active-directory
     3. Do not provide a Redirect URI
 
 2. Create a client secret and copy the value for later use (a.k.a secret)
-
-    ![image](https://user-images.githubusercontent.com/842121/170866392-86ad8e7a-e425-42b8-b735-f7826f9502a2.png)
+![image](https://user-images.githubusercontent.com/842121/170866392-86ad8e7a-e425-42b8-b735-f7826f9502a2.png)
 
 #### assign DNS Zone contributor permission to the Service Principal
 
@@ -49,7 +47,7 @@ _detailed walk-through:_ https://docs.microsoft.com/en-us/azure/role-based-acces
 
 You can double check the success of your operation by providing your Service Principal name to the "Check access" form
 
-    ![image](https://user-images.githubusercontent.com/842121/170866976-4086bbe0-ec17-4c70-a326-413fe17baf3a.png)
+![image](https://user-images.githubusercontent.com/842121/170866976-4086bbe0-ec17-4c70-a326-413fe17baf3a.png)
 
 #### getting the remaining configuration items
 
