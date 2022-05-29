@@ -8,8 +8,8 @@
             }
         },
         "logLevel": {
-            "Update": "Debug",
-            "DNSUpdater.Library.Services.AzureDnsService": "Debug"
+            "DNSUpdater.Function.Update": "Information",
+            "DNSUpdater.Library.Services.AzureDnsService": "Information"
         }
     },
     "extensions": {
