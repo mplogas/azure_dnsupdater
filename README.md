@@ -25,15 +25,13 @@ _detailed walk-through:_ https://docs.microsoft.com/en-us/azure/active-directory
 
 ##### quick guide
 
-1. Register a new application in your AAD tenant and take note of the application id
+1. Register a new application in your AAD tenant and take note of the application id (a.k.a clientId)
     
     1. Give it a meaningful name
     2. Select Single tenant
     3. Do not provide a Redirect URI
-    
-    ![image](https://user-images.githubusercontent.com/842121/170866254-e8e3283c-574f-4873-bd07-861da05d18f9.png)
 
-2. Create a client secret and copy the value for later user
+2. Create a client secret and copy the value for later use (a.k.a secret)
 
     ![image](https://user-images.githubusercontent.com/842121/170866392-86ad8e7a-e425-42b8-b735-f7826f9502a2.png)
 
