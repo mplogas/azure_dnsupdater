@@ -5,15 +5,59 @@
 
 **Use-Case:** Ubiquiti USG / Ubiquiti UDM dynamic DNS feature.
 
+    ![image](https://user-images.githubusercontent.com/842121/170864950-cf8e85b2-8dbb-4cb9-a284-f36d4f9bee2a.png)
+
+
 ### Setup
 
 1. Set up you DNS Zones in Azure
-2. Set up a Service Principal (https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal)
-3. Use RBAC to assign the role 'DNS Zone Contributor' to the service principal in your DNS resource group (https://docs.microsoft.com/en-us/azure/role-based-access-control/role-assignments-portal)
-4. Create an Azure function in Azure (consumption plan works fine)
-5. Deploy to your Azure Function
+2. Set up your Azure Function App (v4/.NET6, consumption plan, Application Insights enabled)
+
+    ![image](https://user-images.githubusercontent.com/842121/170865030-fdb026b2-fb98-4d1f-af53-73e8c2f1657d.png)
+
+3. Deploy this Azure Function to your Function App resource and configure Application Settings accordingly
 
 ### Configuration
+
+#### configure a Service Principal
+
+_detailed walk-through:_ https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal
+
+##### quick guide
+
+1. Register a new application in your AAD tenant and take note of the application id
+    
+    1. Give it a meaningful name
+    2. Select Single tenant
+    3. Do not provide a Redirect URI
+    
+    ![image](https://user-images.githubusercontent.com/842121/170866254-e8e3283c-574f-4873-bd07-861da05d18f9.png)
+
+2. Create a client secret and copy the value for later user
+
+    ![image](https://user-images.githubusercontent.com/842121/170866392-86ad8e7a-e425-42b8-b735-f7826f9502a2.png)
+
+#### assign DNS Zone contributor permission to the Service Principal
+
+_detailed walk-through:_ https://docs.microsoft.com/en-us/azure/role-based-access-control/role-assignments-portal?tabs=current
+
+##### quick guide
+
+1. Select "Access control (IAM)" in your DNS resource (or resource group if you have multiple DNS Zones that you want to modify)
+2. Click on "Add role assignment"
+3. Search for "DNS Zone Contributor", select it and click "Next"
+4. Click "Select Members" and search for your Service Principal (either by name or object id) and select it
+5. Click "Next" and then "Review + assign"
+
+You can double check the success of your operation by providing your Service Principal name to the "Check access" form
+
+    ![image](https://user-images.githubusercontent.com/842121/170866976-4086bbe0-ec17-4c70-a326-413fe17baf3a.png)
+
+#### getting the remaining configuration items
+
+- **tenantId** - you can get this from your AAD Overview page
+- **subscriptionId** - the GUID of your subscription, can be found in the overview page of any resource
+- **rgName** - the name of the resource group that holds your DNS Zone resources
 
 #### local testing: 
 Set up your secrets.json with the following keys. 
