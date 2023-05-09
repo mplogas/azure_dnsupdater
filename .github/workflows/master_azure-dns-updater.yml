@@ -59,7 +59,7 @@ jobs:
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6C31E99A562242A6BCE56A3651C2A70A }}
     
-      - name: Open firewall
+      - name: Close firewall
         uses: Azure/cli@v1.0.7
         with:
           # Specify the script here
