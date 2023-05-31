@@ -7,6 +7,9 @@
 
 ![image](https://user-images.githubusercontent.com/842121/170864950-cf8e85b2-8dbb-4cb9-a284-f36d4f9bee2a.png)
 
+> *note: I recently migrated from my trusty old USG to a new UDM-SE and had to set the server to ```yourdyndns.azurewebsites.net/\/nic/update?hostname=%h&myip=%i```. 
+For unknown reasons the UDM is always creating a custom inadyn profile without a ddns-path, regardless of the ddns provider profile you select in the UI.*  
+
 ### Setup
 
 1. Set up you DNS Zones in Azure
