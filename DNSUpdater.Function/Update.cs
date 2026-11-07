@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web.Http;
 using DNSUpdater.Library.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -27,7 +25,7 @@ namespace DNSUpdater.Function
         }
 
 
-        [FunctionName("update")]
+        [Function("update")]
         public async Task<IActionResult> RunAsync(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)]
             HttpRequest req)
@@ -67,7 +65,7 @@ namespace DNSUpdater.Function
             catch (Exception e)
             {
                 this.logger.LogError(e, "Exception thrown");
-                return new InternalServerErrorResult();
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
         }
 

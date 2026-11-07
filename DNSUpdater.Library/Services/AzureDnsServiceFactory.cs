@@ -1,9 +1,7 @@
-﻿using Microsoft.Azure.Management.Fluent;
-using Microsoft.Azure.Management.ResourceManager.Fluent;
-using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
+﻿using Azure.Identity;
+using Azure.ResourceManager;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Rest.Azure;
 
 namespace DNSUpdater.Library.Services;
 
@@ -22,22 +20,18 @@ public class AzureDnsServiceFactory : IDnsServiceFactory
 
     public IDnsService GetDnsService()
     {
-        var azureClient = GetAzureClient(this.config.GetSection("AzureAD"));
-        var dnsService =
-            new AzureDnsService(azureClient, this.config, this.loggerFactory.CreateLogger<AzureDnsService>());
+        var aadSection = this.config.GetSection("AzureAD");
+        var subscriptionId = aadSection["subscriptionId"]!;
+        var armClient = GetArmClient(aadSection, subscriptionId);
+        var dnsService = new AzureDnsService(armClient, subscriptionId, this.config,
+            this.loggerFactory.CreateLogger<AzureDnsService>());
 
         return dnsService;
     }
 
-    private IAzure GetAzureClient(IConfigurationSection aadSection)
+    private static ArmClient GetArmClient(IConfigurationSection aadSection, string subscriptionId)
     {
-        var credentials = SdkContext.AzureCredentialsFactory.FromServicePrincipal(aadSection["clientId"], aadSection["secret"], aadSection["tenantId"], AzureEnvironment.AzureGlobalCloud);
-        var azure = Azure
-            .Configure()
-            .WithLogLevel(HttpLoggingDelegatingHandler.Level.BodyAndHeaders)
-            .Authenticate(credentials)
-            .WithSubscription(aadSection["subscriptionId"]);
-
-        return azure;
+        var credential = new ClientSecretCredential(aadSection["tenantId"], aadSection["clientId"], aadSection["secret"]);
+        return new ArmClient(credential, subscriptionId);
     }
 }
