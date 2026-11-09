@@ -1,0 +1,107 @@
+# Deploys the Bicep templates in infra/ at subscription scope.
+# Pull requests that change infra/ get a what-if preview against dev. Deployments are started by hand.
+# Setup: see "Infrastructure from GitHub Actions" in README.md.
+
+name: Deploy infrastructure
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  # Location of the deployment record; the resources use the location from the param file.
+  DEPLOYMENT_LOCATION: 'westeurope'
+
+jobs:
+  what-if:
+    name: What-if (dev)
+    # Pull requests from forks get no OIDC token, so only run for branches of this repository.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Log in to Azure
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_IAC_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: What-if
+        shell: bash
+        env:
+          DYNDNS_USER: ${{ secrets.DYNDNS_USER }}
+          DYNDNS_SECRET: ${{ secrets.DYNDNS_SECRET }}
+        run: |
+          az deployment sub what-if \
+            --name dnsupdater-dev \
+            --location "$DEPLOYMENT_LOCATION" \
+            --parameters infra/dev.bicepparam \
+            | tee what-if.txt
+          { echo '### What-if: dev'; echo '```'; cat what-if.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy (${{ inputs.environment }})
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: infra-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      ENVIRONMENT: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Log in to Azure
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_IAC_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: What-if
+        shell: bash
+        env:
+          DYNDNS_USER: ${{ secrets.DYNDNS_USER }}
+          DYNDNS_SECRET: ${{ secrets.DYNDNS_SECRET }}
+        run: |
+          az deployment sub what-if \
+            --name "dnsupdater-$ENVIRONMENT" \
+            --location "$DEPLOYMENT_LOCATION" \
+            --parameters "infra/$ENVIRONMENT.bicepparam"
+
+      - name: Deploy
+        shell: bash
+        env:
+          DYNDNS_USER: ${{ secrets.DYNDNS_USER }}
+          DYNDNS_SECRET: ${{ secrets.DYNDNS_SECRET }}
+        run: |
+          az deployment sub create \
+            --name "dnsupdater-$ENVIRONMENT" \
+            --location "$DEPLOYMENT_LOCATION" \
+            --parameters "infra/$ENVIRONMENT.bicepparam" \
+            --query properties.outputs \
+            --output json \
+            | tee outputs.json
+          { echo "### Outputs: $ENVIRONMENT"; echo '```json'; cat outputs.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
