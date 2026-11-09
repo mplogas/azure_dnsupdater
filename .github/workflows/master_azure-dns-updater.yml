@@ -1,4 +1,5 @@
-# Builds the function and deploys it to Azure Functions.
+# Builds the function and deploys it to the prod Function App.
+# The job runs in the GitHub environment "prod" and takes its secrets and the app name from there.
 # Authenticates with OpenID Connect, see "Deployment with GitHub Actions" in README.md for the required setup.
 
 name: Deploy to Azure Functions
@@ -13,13 +14,23 @@ permissions:
   id-token: write
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'azure-dns-updater'
   DOTNET_VERSION: '10.0.x'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: prod
+    env:
+      AZURE_FUNCTIONAPP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
     steps:
+      - name: Check configuration
+        shell: bash
+        run: |
+          if [ -z "$AZURE_FUNCTIONAPP_NAME" ]; then
+            echo "::error::Set the variable AZURE_FUNCTIONAPP_NAME in the prod environment to the functionAppName output of the infrastructure deployment."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
 

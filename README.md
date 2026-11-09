@@ -104,21 +104,23 @@ Reading the secret yourself needs a Key Vault data role such as *Key Vault Secre
 
 ### 3. Deployment with GitHub Actions
 
-The workflow in `.github/workflows/master_azure-dns-updater.yml` builds and deploys the function on every push to `master`. It logs in to Azure with OpenID Connect as an existing user-assigned managed identity, so no deployment secret is stored in GitHub. The Bicep template doesn't create this identity.
+The workflow in `.github/workflows/master_azure-dns-updater.yml` builds the function and deploys it to prod on every push to `master`. The job runs in the GitHub environment `prod` (*Settings > Environments*) and takes its secrets and the app name from there. It logs in to Azure with OpenID Connect as an existing user-assigned managed identity, so no deployment secret is stored in GitHub. The Bicep template doesn't create this identity.
 
-1. The identity needs a federated credential that trusts this repository's `master` branch:
+1. Because the job runs in the `prod` environment, the identity needs a federated credential with the subject `repo:<owner>/<repo>:environment:prod`. If the same identity also deploys the infrastructure, the credential from step 4 already covers this.
 
    ```sh
-   az identity federated-credential create --name azure-dnsupdater-master \
+   az identity federated-credential create --name azure-dnsupdater-prod \
      --identity-name <identity> --resource-group <identity-resource-group> \
      --issuer https://token.actions.githubusercontent.com \
-     --subject repo:<owner>/<repo>:ref:refs/heads/master \
+     --subject repo:<owner>/<repo>:environment:prod \
      --audiences api://AzureADTokenExchange
    ```
 
 2. It needs **Website Contributor** (or more) on the Function App. If it doesn't already have that through the resource group or subscription, set `githubDeployPrincipalId` in the param file to its principal ID and deploy again.
-3. Add its client ID, your tenant ID and your subscription ID as the repository secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` (*Settings > Secrets and variables > Actions*).
-4. Set `AZURE_FUNCTIONAPP_NAME` in the workflow to the `functionAppName` output.
+3. Add its client ID, your tenant ID and the prod subscription ID as the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` of the `prod` environment.
+4. Add the variable `AZURE_FUNCTIONAPP_NAME` to the `prod` environment, set to the `functionAppName` output. The workflow stops with an error if it's missing.
+
+Restrict the `prod` environment to the `master` branch: the workflow can also be started by hand, and without that rule it could deploy prod from any branch.
 
 More details: [Deploy to Azure Functions by using GitHub Actions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-how-to-github-actions).
 
@@ -144,8 +146,8 @@ Setup:
    done
    ```
 
-3. Create the GitHub environments `dev` and `prod` (*Settings > Environments*), each with the secrets `DYNDNS_USER` and `DYNDNS_SECRET`. Restrict `prod` to the `master` branch, otherwise *Run workflow* can deploy prod from any branch.
-4. Add `AZURE_IAC_CLIENT_ID` (the identity's client ID), `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`. As repository secrets they apply to both environments. If dev and prod are in different subscriptions or use different identities, add them as secrets of the `dev` and `prod` environments instead; environment secrets take precedence over repository secrets with the same name.
+3. Give both GitHub environments, `dev` and `prod`, the secrets `DYNDNS_USER` and `DYNDNS_SECRET`.
+4. Add `AZURE_IAC_CLIENT_ID` (the identity's client ID), `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` as secrets of each environment, so dev and prod can use different subscriptions and identities.
 
 The workflow records the deployment in `westeurope` (`DEPLOYMENT_LOCATION`); the resources use the `location` from the param file.
 
