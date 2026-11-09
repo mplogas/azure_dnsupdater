@@ -20,6 +20,9 @@ param appName string = 'dnsupdater'
 @description('Resource group to create for this environment.')
 param resourceGroupName string = 'rg-${appName}-${environmentName}'
 
+@description('Name of the Function App. Must be globally unique. Leave empty to generate one with a random suffix.')
+param functionAppName string = ''
+
 @description('Resource group with the Azure DNS zones the app updates. The app identity gets DNS Zone Contributor on it.')
 param dnsZoneResourceGroupName string
 
@@ -41,8 +44,8 @@ param keyVaultSoftDeleteRetentionInDays int = 90
 @description('Principal ID of the existing identity GitHub Actions deploys with. Gets Website Contributor on the Function App. Leave empty if it already has access through a broader scope.')
 param githubDeployPrincipalId string = ''
 
-@description('Maximum number of instances. 40 is the lowest value the Flex Consumption plan accepts.')
-@minValue(40)
+@description('Maximum number of instances (1 to 1000).')
+@minValue(1)
 @maxValue(1000)
 param maximumInstanceCount int = 40
 
@@ -72,6 +75,7 @@ module app 'modules/app.bicep' = {
     environmentName: environmentName
     location: location
     appName: appName
+    functionAppName: functionAppName
     tags: tags
     dnsZoneResourceGroupName: dnsZoneResourceGroupName
     dnsZoneSubscriptionId: dnsZoneSubscriptionId

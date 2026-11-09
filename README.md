@@ -64,7 +64,7 @@ Create the DNS zone in Azure DNS (if it doesn't exist yet) and add an A record f
 - the **DNS Zone Contributor** role for the app identity on the resource group with your DNS zones, so the app needs no service principal or client secret
 - optionally, the **Website Contributor** role on the Function App for your existing GitHub deploy identity (see step 3)
 
-The per-environment values are in `infra/prod.bicepparam` and `infra/dev.bicepparam`. Before the first deployment, set `dnsZoneResourceGroupName` in both files to the resource group that holds your DNS zones, and `dnsZoneSubscriptionId` if that resource group is in a different subscription than the one you deploy to. Also check `location`: not every region offers Flex Consumption, `az functionapp list-flexconsumption-locations` lists the ones that do.
+The per-environment values are in `infra/prod.bicepparam` and `infra/dev.bicepparam`. Before the first deployment, set `dnsZoneResourceGroupName` in both files to the resource group that holds your DNS zones, and `dnsZoneSubscriptionId` if that resource group is in a different subscription than the one you deploy to. `functionAppName` sets the Function App's name, which must be unique across Azure; without it the template generates one. Also check `location`: not every region offers Flex Consumption, `az functionapp list-flexconsumption-locations` lists the ones that do.
 
 The account that deploys needs:
 

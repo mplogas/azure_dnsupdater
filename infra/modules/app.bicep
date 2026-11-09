@@ -8,8 +8,8 @@ param location string
 param appName string
 param tags object
 
-@description('Name of the Function App. Must be globally unique.')
-param functionAppName string = 'func-${appName}-${environmentName}-${uniqueString(resourceGroup().id)}'
+@description('Name of the Function App. Must be globally unique. Empty generates a name.')
+param functionAppName string
 
 param dnsZoneResourceGroupName string
 param dnsZoneSubscriptionId string
@@ -24,6 +24,7 @@ param maximumInstanceCount int
 param instanceMemoryMB int
 
 var resourceToken = uniqueString(resourceGroup().id)
+var resolvedFunctionAppName = empty(functionAppName) ? 'func-${appName}-${environmentName}-${resourceToken}' : functionAppName
 var storageAccountName = take(toLower('st${replace(appName, '-', '')}${environmentName}${resourceToken}'), 24)
 var keyVaultName = take('kv-${appName}-${environmentName}-${resourceToken}', 24)
 var deploymentContainerName = 'app-package'
@@ -190,7 +191,7 @@ resource plan 'Microsoft.Web/serverfarms@2024-11-01' = {
 }
 
 resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
-  name: functionAppName
+  name: resolvedFunctionAppName
   location: location
   tags: tags
   kind: 'functionapp,linux'

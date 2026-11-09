@@ -3,6 +3,9 @@ using 'main.bicep'
 param environmentName = 'dev'
 param location = 'westeurope'
 
+// Matches the AZURE_FUNCTIONAPP_NAME variable of the GitHub environment.
+param functionAppName = 'azure-dnsupdater-v2-dev'
+
 // Resource group with the dev DNS zone, in the dev subscription. Dev never writes to the prod zones.
 param dnsZoneResourceGroupName = 'dns'
 
