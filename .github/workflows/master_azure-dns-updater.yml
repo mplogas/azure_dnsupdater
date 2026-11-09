@@ -1,5 +1,6 @@
-# Builds the function and deploys it to the prod Function App.
-# The job runs in the GitHub environment "prod" and takes its secrets and the app name from there.
+# Builds the function and deploys it to Azure Functions.
+# Pushes to master deploy prod; a manual run deploys the environment you pick (dev by default).
+# The job runs in the GitHub environment of that name and takes its secrets and the app name from there.
 # Authenticates with OpenID Connect, see "Deployment with GitHub Actions" in README.md for the required setup.
 
 name: Deploy to Azure Functions
@@ -8,6 +9,14 @@ on:
   push:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
 
 permissions:
   contents: read
@@ -18,16 +27,22 @@ env:
 
 jobs:
   build-and-deploy:
+    # Push events have no inputs, so they fall back to prod.
+    name: Deploy (${{ inputs.environment || 'prod' }})
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{ inputs.environment || 'prod' }}
+    concurrency:
+      group: app-${{ inputs.environment || 'prod' }}
+      cancel-in-progress: false
     env:
+      ENVIRONMENT: ${{ inputs.environment || 'prod' }}
       AZURE_FUNCTIONAPP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
     steps:
       - name: Check configuration
         shell: bash
         run: |
           if [ -z "$AZURE_FUNCTIONAPP_NAME" ]; then
-            echo "::error::Set the variable AZURE_FUNCTIONAPP_NAME in the prod environment to the functionAppName output of the infrastructure deployment."
+            echo "::error::Set the variable AZURE_FUNCTIONAPP_NAME in the $ENVIRONMENT environment to the functionAppName output of the infrastructure deployment."
             exit 1
           fi
 

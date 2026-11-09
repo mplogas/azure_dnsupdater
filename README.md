@@ -104,23 +104,34 @@ Reading the secret yourself needs a Key Vault data role such as *Key Vault Secre
 
 ### 3. Deployment with GitHub Actions
 
-The workflow in `.github/workflows/master_azure-dns-updater.yml` builds the function and deploys it to prod on every push to `master`. The job runs in the GitHub environment `prod` (*Settings > Environments*) and takes its secrets and the app name from there. It logs in to Azure with OpenID Connect as an existing user-assigned managed identity, so no deployment secret is stored in GitHub. The Bicep template doesn't create this identity.
+The workflow in `.github/workflows/master_azure-dns-updater.yml` builds the function and deploys it: to prod on every push to `master`, or to the environment you pick when you start it by hand (*Actions > Deploy to Azure Functions > Run workflow*, dev by default). The job runs in the GitHub environment of that name (*Settings > Environments*) and takes its secrets and the app name from there. It logs in to Azure with OpenID Connect as an existing user-assigned managed identity, so no deployment secret is stored in GitHub. The Bicep template doesn't create this identity.
 
-1. Because the job runs in the `prod` environment, the identity needs a federated credential with the subject `repo:<owner>/<repo>:environment:prod`. If the same identity also deploys the infrastructure, the credential from step 4 already covers this.
+For each environment you deploy to:
+
+1. The identity needs a federated credential for the environment's OIDC subject (see *OIDC subjects* below). If the same identity also deploys the infrastructure, the credential from step 4 already covers this.
 
    ```sh
-   az identity federated-credential create --name azure-dnsupdater-prod \
+   az identity federated-credential create --name azure-dnsupdater-<env> \
      --identity-name <identity> --resource-group <identity-resource-group> \
      --issuer https://token.actions.githubusercontent.com \
-     --subject repo:<owner>/<repo>:environment:prod \
+     --subject "repo:<owner>@<owner-id>/<repo>@<repo-id>:environment:<env>" \
      --audiences api://AzureADTokenExchange
    ```
 
 2. It needs **Website Contributor** (or more) on the Function App. If it doesn't already have that through the resource group or subscription, set `githubDeployPrincipalId` in the param file to its principal ID and deploy again.
-3. Add its client ID, your tenant ID and the prod subscription ID as the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` of the `prod` environment.
-4. Add the variable `AZURE_FUNCTIONAPP_NAME` to the `prod` environment, set to the `functionAppName` output. The workflow stops with an error if it's missing.
+3. Add its client ID, your tenant ID and the environment's subscription ID as the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` of the environment.
+4. Add the variable `AZURE_FUNCTIONAPP_NAME` to the environment, set to the `functionAppName` output of its infrastructure deployment. The workflow stops with an error if it's missing.
 
 Restrict the `prod` environment to the `master` branch: the workflow can also be started by hand, and without that rule it could deploy prod from any branch.
+
+**OIDC subjects.** The credentials here use GitHub's immutable subject format, which contains the owner and repository IDs, not just their names. A renamed, transferred or recreated repository therefore can't match them. Repositories created before July 2026 send the old name-based subject until you opt in; `sub_claim_prefix` in the second command shows the prefix to use:
+
+```sh
+gh api -X PUT repos/<owner>/<repo>/actions/oidc/customization/sub -F use_default=true -F use_immutable_subject=true
+gh api repos/<owner>/<repo>/actions/oidc/customization/sub
+```
+
+See [Migrate GitHub Actions federated credentials to immutable subjects](https://learn.microsoft.com/en-us/entra/workload-id/workload-identities-github-immutable-subjects).
 
 More details: [Deploy to Azure Functions by using GitHub Actions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-how-to-github-actions).
 
@@ -134,14 +145,14 @@ More details: [Deploy to Azure Functions by using GitHub Actions](https://learn.
 Setup:
 
 1. Use a separate identity for the infrastructure, not the one that deploys the app. It creates resource groups and role assignments, so it needs **Contributor** plus **Role Based Access Control Administrator** (or Owner) on the subscription. You can limit the RBAC Administrator role with a condition to the roles the template assigns.
-2. Jobs that run in a GitHub environment get the OIDC subject `repo:<owner>/<repo>:environment:<env>`, so the identity needs one federated credential per environment:
+2. Jobs that run in a GitHub environment get the OIDC subject `repo:<owner>@<owner-id>/<repo>@<repo-id>:environment:<env>` (see *OIDC subjects* in step 3), so the identity needs one federated credential per environment:
 
    ```sh
    for env in dev prod; do
      az identity federated-credential create --name "azure-dnsupdater-$env" \
        --identity-name <iac-identity> --resource-group <identity-resource-group> \
        --issuer https://token.actions.githubusercontent.com \
-       --subject "repo:<owner>/<repo>:environment:$env" \
+       --subject "repo:<owner>@<owner-id>/<repo>@<repo-id>:environment:$env" \
        --audiences api://AzureADTokenExchange
    done
    ```
