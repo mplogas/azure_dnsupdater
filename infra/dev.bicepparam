@@ -1,0 +1,18 @@
+using 'main.bicep'
+
+param environmentName = 'dev'
+param location = 'westeurope'
+
+// Resource group with the dev DNS zone, in the dev subscription. Dev never writes to the prod zones.
+param dnsZoneResourceGroupName = 'dns'
+
+// Principal ID of the existing identity the GitHub workflow deploys with.
+// Leave empty if it already has access to this resource group through a broader scope.
+param githubDeployPrincipalId = ''
+
+// Credentials for the DynDNS client, read from the shell so they never end up in git.
+param dyndnsUser = readEnvironmentVariable('DYNDNS_USER')
+param dyndnsSecret = readEnvironmentVariable('DYNDNS_SECRET')
+
+// Dev environments get torn down more often; a short retention frees the vault name sooner.
+param keyVaultSoftDeleteRetentionInDays = 7
