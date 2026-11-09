@@ -8,7 +8,7 @@ param functionAppName = 'azure-dnsupdater-v2-prod'
 
 // Resource group that holds your Azure DNS zones. Set dnsZoneSubscriptionId as well if the zones
 // are in a different subscription than the one you deploy to.
-param dnsZoneResourceGroupName = '<dns-zone-resource-group>'
+param dnsZoneResourceGroupName = 'dns'
 
 // Principal ID of the existing identity the GitHub workflow deploys with.
 // Leave empty if it already has access to this resource group through a broader scope.
