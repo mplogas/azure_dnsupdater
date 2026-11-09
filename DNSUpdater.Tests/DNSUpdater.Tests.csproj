@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <!-- Same id as the Console and Function projects, so the live tests read the same user secrets. -->
+        <UserSecretsId>17ef8836-9686-4582-ad5c-0ef80eb62755</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NSubstitute" Version="6.2.0" />
+        <PackageReference Include="xunit.v3" Version="4.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\DNSUpdater.Function\DNSUpdater.Function.csproj" />
+        <ProjectReference Include="..\DNSUpdater.Library\DNSUpdater.Library.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+</Project>
