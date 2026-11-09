@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
+using Azure.Identity;
 using Azure.ResourceManager;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,16 +23,27 @@ public class AzureDnsServiceFactory : IDnsServiceFactory
     {
         var aadSection = this.config.GetSection("AzureAD");
         var subscriptionId = aadSection["subscriptionId"]!;
-        var armClient = GetArmClient(aadSection, subscriptionId);
+        var armClient = new ArmClient(CreateCredential(aadSection), subscriptionId);
         var dnsService = new AzureDnsService(armClient, subscriptionId, this.config,
             this.loggerFactory.CreateLogger<AzureDnsService>());
 
         return dnsService;
     }
 
-    private static ArmClient GetArmClient(IConfigurationSection aadSection, string subscriptionId)
+    /// <summary>
+    /// Uses the app registration from the AzureAD section when a client secret is configured (local development).
+    /// Otherwise uses a managed identity: the user-assigned one named by managedIdentityClientId,
+    /// or the system-assigned one when that isn't set.
+    /// </summary>
+    internal static TokenCredential CreateCredential(IConfigurationSection aadSection)
     {
-        var credential = new ClientSecretCredential(aadSection["tenantId"], aadSection["clientId"], aadSection["secret"]);
-        return new ArmClient(credential, subscriptionId);
+        var secret = aadSection["secret"];
+        if (!string.IsNullOrEmpty(secret))
+            return new ClientSecretCredential(aadSection["tenantId"], aadSection["clientId"], secret);
+
+        var managedIdentityClientId = aadSection["managedIdentityClientId"];
+        return new ManagedIdentityCredential(string.IsNullOrEmpty(managedIdentityClientId)
+            ? ManagedIdentityId.SystemAssigned
+            : ManagedIdentityId.FromUserAssignedClientId(managedIdentityClientId));
     }
 }
