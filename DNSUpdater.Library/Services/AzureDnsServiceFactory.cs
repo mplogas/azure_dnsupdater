@@ -1,9 +1,8 @@
-﻿using Microsoft.Azure.Management.Fluent;
-using Microsoft.Azure.Management.ResourceManager.Fluent;
-using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
+﻿using Azure.Core;
+using Azure.Identity;
+using Azure.ResourceManager;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Rest.Azure;
 
 namespace DNSUpdater.Library.Services;
 
@@ -22,22 +21,29 @@ public class AzureDnsServiceFactory : IDnsServiceFactory
 
     public IDnsService GetDnsService()
     {
-        var azureClient = GetAzureClient(this.config.GetSection("AzureAD"));
-        var dnsService =
-            new AzureDnsService(azureClient, this.config, this.loggerFactory.CreateLogger<AzureDnsService>());
+        var aadSection = this.config.GetSection("AzureAD");
+        var subscriptionId = aadSection["subscriptionId"]!;
+        var armClient = new ArmClient(CreateCredential(aadSection), subscriptionId);
+        var dnsService = new AzureDnsService(armClient, subscriptionId, this.config,
+            this.loggerFactory.CreateLogger<AzureDnsService>());
 
         return dnsService;
     }
 
-    private IAzure GetAzureClient(IConfigurationSection aadSection)
+    /// <summary>
+    /// Uses the app registration from the AzureAD section when a client secret is configured (local development).
+    /// Otherwise uses a managed identity: the user-assigned one named by managedIdentityClientId,
+    /// or the system-assigned one when that isn't set.
+    /// </summary>
+    internal static TokenCredential CreateCredential(IConfigurationSection aadSection)
     {
-        var credentials = SdkContext.AzureCredentialsFactory.FromServicePrincipal(aadSection["clientId"], aadSection["secret"], aadSection["tenantId"], AzureEnvironment.AzureGlobalCloud);
-        var azure = Azure
-            .Configure()
-            .WithLogLevel(HttpLoggingDelegatingHandler.Level.BodyAndHeaders)
-            .Authenticate(credentials)
-            .WithSubscription(aadSection["subscriptionId"]);
+        var secret = aadSection["secret"];
+        if (!string.IsNullOrEmpty(secret))
+            return new ClientSecretCredential(aadSection["tenantId"], aadSection["clientId"], secret);
 
-        return azure;
+        var managedIdentityClientId = aadSection["managedIdentityClientId"];
+        return new ManagedIdentityCredential(string.IsNullOrEmpty(managedIdentityClientId)
+            ? ManagedIdentityId.SystemAssigned
+            : ManagedIdentityId.FromUserAssignedClientId(managedIdentityClientId));
     }
 }

@@ -1,6 +1,8 @@
-﻿using Microsoft.Azure.Management.Dns.Fluent;
-using Microsoft.Azure.Management.Dns.Fluent.Models;
-using Microsoft.Azure.Management.Fluent;
+﻿using System.Net;
+using Azure;
+using Azure.ResourceManager;
+using Azure.ResourceManager.Dns;
+using Azure.ResourceManager.Dns.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -9,15 +11,17 @@ namespace DNSUpdater.Library.Services
 
     public class AzureDnsService : IDnsService
     {
+        private readonly string subscriptionId;
         private readonly string rgName;
         private readonly ILogger<AzureDnsService> logger;
-        private readonly IAzure client;
+        private readonly ArmClient client;
 
-        public AzureDnsService(IAzure azureClient, IConfiguration config, ILogger<AzureDnsService> logger)
+        public AzureDnsService(ArmClient armClient, string subscriptionId, IConfiguration config, ILogger<AzureDnsService> logger)
         {
-            this.rgName = config["rgName"];
+            this.subscriptionId = subscriptionId;
+            this.rgName = config["rgName"]!;
             this.logger = logger;
-            this.client = azureClient;
+            this.client = armClient;
         }
 
         public async Task<bool> IsKnown(string fqdn)
@@ -25,7 +29,7 @@ namespace DNSUpdater.Library.Services
             try
             {
                 var domain = DisectFqdn(fqdn);
-                return await GetRecordSet(domain) != null;
+                return await GetARecord(domain) != null;
             }
             catch (Exception e)
             {
@@ -40,91 +44,78 @@ namespace DNSUpdater.Library.Services
             try
             {
                 var domain = DisectFqdn(fqdn);
+                var record = await GetARecord(domain);
 
-                var rootDnsZone = await this.client.DnsZones.GetByResourceGroupAsync(rgName, domain.domain);
-                var record = rootDnsZone.ListRecordSets().FirstOrDefault(r =>
-                    r.Fqdn.Equals(fqdn + ".", StringComparison.InvariantCultureIgnoreCase));
-
-                if (record != null)
-                {
-                    switch (record.RecordType)
-                    {
-                        case RecordType.A:
-                            var rec = record.Inner.ARecords.FirstOrDefault(r =>
-                                r.Ipv4Address.Equals(ip, StringComparison.InvariantCultureIgnoreCase));
-                            if (rec != null)
-                            {
-                                this.logger.LogInformation($"IP update not required. Domain: {domain.fqdn}, ip: {ip}");
-                                return UpdateStatus.nochg;
-                            }
-                            else
-                            {
-                                var dnsZone = rootDnsZone.Update()
-                                    .DefineARecordSet(domain.subdomain)
-                                    .WithIPv4Address(ip)
-                                    .WithTimeToLive(300)
-                                    .Attach()
-                                    .Apply();
-
-                                this.logger.LogInformation($"IP update finished. Domain: {domain.fqdn}, ip: {ip}");
-                                return UpdateStatus.good;
-                            }
-                            break;
-                        case RecordType.AAAA:
-                        case RecordType.CAA:
-                        case RecordType.CNAME:
-                        case RecordType.MX:
-                        case RecordType.NS:
-                        case RecordType.PTR:
-                        case RecordType.SOA:
-                        case RecordType.SRV:
-                        case RecordType.TXT:
-                        default:
-                            this.logger.LogWarning(
-                                $"Tried to update a non-A record. RecordType {record.RecordType}, domain: {domain.fqdn}, ip: {ip}");
-                            return UpdateStatus.nohost;
-                    }
-                }
-                else
-                {
+                if (record == null)
                     return UpdateStatus.nohost;
+
+                var address = IPAddress.Parse(ip);
+                if (record.DnsARecords.Any(r => address.Equals(r.IPv4Address)))
+                {
+                    this.logger.LogInformation($"IP update not required. Domain: {domain.fqdn}, ip: {address}");
+                    return UpdateStatus.nochg;
                 }
+
+                // Replaces all addresses in the record set with the new one.
+                var data = new DnsARecordData { TtlInSeconds = 300 };
+                data.DnsARecords.Add(new DnsARecordInfo { IPv4Address = address });
+                await GetDnsZone(domain).GetDnsARecords()
+                    .CreateOrUpdateAsync(WaitUntil.Completed, domain.subdomain, data);
+
+                this.logger.LogInformation($"IP update finished. Domain: {domain.fqdn}, ip: {address}");
+                return UpdateStatus.good;
             }
             catch (ApplicationException e)
             {
-                this.logger.LogError(e, $"Failed to parse fqdn.  Domain: {fqdn}, ip: {ip}");
+                // The hostname failed validation here, so it may contain anything: escape it before logging.
+                this.logger.LogError(e, $"Failed to parse fqdn. Domain: {LogValue.Escape(fqdn)}, ip: {LogValue.Escape(ip)}");
                 return UpdateStatus.notfqdn;
             }
             catch (Exception e)
             {
                 this.logger.LogError(e, "Fail to update domain");
             }
-            
+
             return UpdateStatus.othererr;
         }
 
         private Domain DisectFqdn(string fqdn)
         {
+            // The messages leave out the hostname; the caller logs it escaped.
             if (Uri.CheckHostName(fqdn) != UriHostNameType.Dns)
-                throw new ApplicationException($"{fqdn} is not a valid domain");
+                throw new ApplicationException("The hostname is not a valid DNS name");
             var parts = fqdn.Split(".");
-            if (parts.Length <= 2) throw new ApplicationException($"{fqdn} does not contain a subdomain");
-            
+            if (parts.Length <= 2) throw new ApplicationException("The hostname does not contain a subdomain");
+
             var domain = $"{parts[^2]}.{parts[^1]}";
             var subdomain = fqdn.Replace("." + domain, "");
 
             return new Domain { domain = domain, fqdn = fqdn, subdomain = subdomain };
         }
 
-        private async Task<IDnsRecordSet?> GetRecordSet(Domain domain)
+        private DnsZoneResource GetDnsZone(Domain domain)
         {
-            var rootDnsZone = await this.client.DnsZones.GetByResourceGroupAsync(rgName, domain.domain);
-            var record = rootDnsZone.ListRecordSets().FirstOrDefault(r =>
-                r.Fqdn.Equals(domain.fqdn + ".",
-                    StringComparison
-                        .InvariantCultureIgnoreCase)); //fqdn are returned with a tailing dot, read: as proper fqdn
+            var zoneId = DnsZoneResource.CreateResourceIdentifier(this.subscriptionId, this.rgName, domain.domain);
+            return this.client.GetDnsZoneResource(zoneId);
+        }
 
-            return record;
+        /// <summary>
+        /// Reads the A record set directly instead of listing the zone, so the app identity only needs
+        /// a role on the record sets it may update. Returns null for a missing A record or zone (404),
+        /// and for a record set the identity has no role on (403).
+        /// </summary>
+        private async Task<DnsARecordData?> GetARecord(Domain domain)
+        {
+            try
+            {
+                var record = await GetDnsZone(domain).GetDnsARecords().GetAsync(domain.subdomain);
+                return record.Value.Data;
+            }
+            catch (RequestFailedException e) when (e.Status is 403 or 404)
+            {
+                this.logger.LogWarning($"No A record the app may update. Domain: {domain.fqdn}, status: {e.Status} {e.ErrorCode}");
+                return null;
+            }
         }
 
         private struct Domain
