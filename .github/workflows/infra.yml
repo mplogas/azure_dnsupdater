@@ -37,6 +37,9 @@ jobs:
     environment: dev
     env:
       DNS_HOSTNAMES: ${{ secrets.DNS_HOSTNAMES }}
+      CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
+      CUSTOM_DOMAIN_KEY_VAULT_ID: ${{ secrets.CUSTOM_DOMAIN_KEY_VAULT_ID }}
+      CUSTOM_DOMAIN_CERTIFICATE: ${{ secrets.CUSTOM_DOMAIN_CERTIFICATE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -76,6 +79,9 @@ jobs:
     env:
       ENVIRONMENT: ${{ inputs.environment }}
       DNS_HOSTNAMES: ${{ secrets.DNS_HOSTNAMES }}
+      CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
+      CUSTOM_DOMAIN_KEY_VAULT_ID: ${{ secrets.CUSTOM_DOMAIN_KEY_VAULT_ID }}
+      CUSTOM_DOMAIN_CERTIFICATE: ${{ secrets.CUSTOM_DOMAIN_CERTIFICATE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7

@@ -18,6 +18,12 @@ param dnsHostnames = split(readEnvironmentVariable('DNS_HOSTNAMES'), ',')
 // Leave empty if it already has access to this resource group through a broader scope.
 param githubDeployPrincipalId = ''
 
+// Optional custom domain with a TLS certificate from Key Vault, from secrets of the GitHub environment.
+// Without CUSTOM_DOMAIN the app only has its default *.azurewebsites.net host name.
+param customDomainName = readEnvironmentVariable('CUSTOM_DOMAIN', '')
+param customDomainKeyVaultId = readEnvironmentVariable('CUSTOM_DOMAIN_KEY_VAULT_ID', '')
+param customDomainCertificateName = readEnvironmentVariable('CUSTOM_DOMAIN_CERTIFICATE', '')
+
 // Credentials for the DynDNS client, read from the shell so they never end up in git.
 param dyndnsUser = readEnvironmentVariable('DYNDNS_USER')
 param dyndnsSecret = readEnvironmentVariable('DYNDNS_SECRET')
