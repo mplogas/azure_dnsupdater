@@ -6,6 +6,7 @@ using Azure.ResourceManager.Dns.Mocking;
 using Azure.ResourceManager.Dns.Models;
 using DNSUpdater.Library.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -45,13 +46,13 @@ internal sealed class FakeAzureDns
     public DnsZoneResource Zone { get; } = Substitute.For<DnsZoneResource>();
     public DnsARecordCollection ARecords { get; } = Substitute.For<DnsARecordCollection>();
 
-    public AzureDnsService CreateService()
+    public AzureDnsService CreateService(ILogger<AzureDnsService>? logger = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["rgName"] = ResourceGroup })
             .Build();
 
-        return new AzureDnsService(Client, SubscriptionId, config, NullLogger<AzureDnsService>.Instance);
+        return new AzureDnsService(Client, SubscriptionId, config, logger ?? NullLogger<AzureDnsService>.Instance);
     }
 
     /// <summary>Adds an A record set with the given name relative to the zone.</summary>

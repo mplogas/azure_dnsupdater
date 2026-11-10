@@ -52,7 +52,7 @@ namespace DNSUpdater.Library.Services
                 var address = IPAddress.Parse(ip);
                 if (record.DnsARecords.Any(r => address.Equals(r.IPv4Address)))
                 {
-                    this.logger.LogInformation($"IP update not required. Domain: {domain.fqdn}, ip: {ip}");
+                    this.logger.LogInformation($"IP update not required. Domain: {domain.fqdn}, ip: {address}");
                     return UpdateStatus.nochg;
                 }
 
@@ -62,12 +62,13 @@ namespace DNSUpdater.Library.Services
                 await GetDnsZone(domain).GetDnsARecords()
                     .CreateOrUpdateAsync(WaitUntil.Completed, domain.subdomain, data);
 
-                this.logger.LogInformation($"IP update finished. Domain: {domain.fqdn}, ip: {ip}");
+                this.logger.LogInformation($"IP update finished. Domain: {domain.fqdn}, ip: {address}");
                 return UpdateStatus.good;
             }
             catch (ApplicationException e)
             {
-                this.logger.LogError(e, $"Failed to parse fqdn.  Domain: {fqdn}, ip: {ip}");
+                // The hostname failed validation here, so it may contain anything: escape it before logging.
+                this.logger.LogError(e, $"Failed to parse fqdn. Domain: {LogValue.Escape(fqdn)}, ip: {LogValue.Escape(ip)}");
                 return UpdateStatus.notfqdn;
             }
             catch (Exception e)
@@ -80,10 +81,11 @@ namespace DNSUpdater.Library.Services
 
         private Domain DisectFqdn(string fqdn)
         {
+            // The messages leave out the hostname; the caller logs it escaped.
             if (Uri.CheckHostName(fqdn) != UriHostNameType.Dns)
-                throw new ApplicationException($"{fqdn} is not a valid domain");
+                throw new ApplicationException("The hostname is not a valid DNS name");
             var parts = fqdn.Split(".");
-            if (parts.Length <= 2) throw new ApplicationException($"{fqdn} does not contain a subdomain");
+            if (parts.Length <= 2) throw new ApplicationException("The hostname does not contain a subdomain");
 
             var domain = $"{parts[^2]}.{parts[^1]}";
             var subdomain = fqdn.Replace("." + domain, "");

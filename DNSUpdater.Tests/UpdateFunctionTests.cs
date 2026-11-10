@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
@@ -18,6 +17,7 @@ public class UpdateFunctionTests
     private const string ValidQuery = $"?hostname={Hostname}&myip={Ip}";
 
     private readonly IDnsService dnsService = Substitute.For<IDnsService>();
+    private readonly CapturingLogger<Update> logger = new();
     private readonly Update function;
 
     public UpdateFunctionTests()
@@ -35,7 +35,7 @@ public class UpdateFunctionTests
             })
             .Build();
 
-        function = new Update(factory, config, NullLogger<Update>.Instance);
+        function = new Update(factory, config, logger);
     }
 
     [Theory]
@@ -90,6 +90,30 @@ public class UpdateFunctionTests
 
         AssertResponse(result, 400, "othererr");
         await dnsService.DidNotReceiveWithAnyArgs().Update(default!, default!);
+    }
+
+    [Theory]
+    [InlineData("router", "s3cret")]
+    [InlineData("router", "typo-of-the-password")]
+    public async Task Request_NeverLogsTheCredentials(string user, string secret)
+    {
+        dnsService.Update(Hostname, Ip).Returns(UpdateStatus.good);
+        var authorization = BasicAuth(user, secret);
+
+        await function.RunAsync(Request(ValidQuery, authorization));
+
+        Assert.NotEmpty(logger.Entries);
+        var encoded = authorization["Basic ".Length..];
+        Assert.DoesNotContain(logger.Entries, entry => entry.Contains(encoded) || entry.Contains(secret));
+    }
+
+    [Fact]
+    public async Task Request_LogsQueryValuesWithoutLineBreaks()
+    {
+        await function.RunAsync(Request("?hostname=home%0Aforged-entry.example.com&myip=203.0.113.10%0D%0Aforged-entry"));
+
+        Assert.NotEmpty(logger.Entries);
+        Assert.DoesNotContain(logger.Entries, entry => entry.Contains("\nforged-entry"));
     }
 
     [Fact]

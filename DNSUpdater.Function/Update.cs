@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using DNSUpdater.Library;
 using DNSUpdater.Library.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -44,13 +45,14 @@ namespace DNSUpdater.Function
                 string.IsNullOrWhiteSpace(agent))
                 return new BadRequestObjectResult(UpdateStatus.othererr.ToString());
 
+            // Never log the Authorization header: it is the Base64 of user:password.
             this.logger.LogDebug(
-                $"request details:\nhostname: {hostname}\nip: {ip}\ntoken: {token}\nagent: {agent}\nsystem: {system}");
+                $"request details:\nhostname: {LogValue.Escape(hostname)}\nip: {LogValue.Escape(ip)}\nagent: {LogValue.Escape(agent)}\nsystem: {LogValue.Escape(system)}");
 
             token = token.Replace("Basic ", "");
             if (!tokenList.Contains(token))
             {
-                this.logger.LogWarning($"Unauthorized request. Provided token {token}");
+                this.logger.LogWarning($"Unauthorized request. Hostname: {LogValue.Escape(hostname)}, agent: {LogValue.Escape(agent)}");
                 return new ObjectResult(UpdateStatus.badauth.ToString()) { StatusCode = 401 };
                 //return new UnauthorizedResult();
             }

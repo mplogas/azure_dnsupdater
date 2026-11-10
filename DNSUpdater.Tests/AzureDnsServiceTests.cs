@@ -90,6 +90,18 @@ public class AzureDnsServiceTests
         await AssertNoWrite();
     }
 
+    [Fact]
+    public async Task Update_InvalidHostname_LogsItWithoutLineBreaks()
+    {
+        var logger = new CapturingLogger<AzureDnsService>();
+
+        var result = await azure.CreateService(logger).Update("home\nforged-entry.example.com", "203.0.113.10\r\nforged-entry");
+
+        Assert.Equal(UpdateStatus.notfqdn, result);
+        Assert.NotEmpty(logger.Entries);
+        Assert.DoesNotContain(logger.Entries, entry => entry.Contains("\nforged-entry"));
+    }
+
     [Theory]
     [InlineData("not-an-ip")]
     [InlineData("300.1.1.1")]
