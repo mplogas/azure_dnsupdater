@@ -1,5 +1,5 @@
-# Builds the function and deploys it to Azure Functions.
-# Pushes to master deploy prod; a manual run deploys the environment you pick (dev by default).
+# Tests and builds the function and deploys it to Azure Functions.
+# Pushes to master deploy prod; a manual run deploys the environment you pick (dev by default) and can skip the tests.
 # The job runs in the GitHub environment of that name and takes its secrets and the app name from there.
 # Authenticates with OpenID Connect, see "Deployment with GitHub Actions" in README.md for the required setup.
 
@@ -17,6 +17,10 @@ on:
           - dev
           - prod
         default: dev
+      skip_tests:
+        description: 'Skip the tests'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,6 +57,11 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Push events have no inputs, so the tests always run for them.
+      - name: Run tests
+        if: ${{ !inputs.skip_tests }}
+        run: dotnet test --project DNSUpdater.Tests/DNSUpdater.Tests.csproj --configuration Release
 
       - name: Publish function
         run: dotnet publish DNSUpdater.Function/DNSUpdater.Function.csproj --configuration Release --output ./output

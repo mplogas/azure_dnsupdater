@@ -110,7 +110,7 @@ Reading the secret yourself needs a Key Vault data role such as *Key Vault Secre
 
 ### 3. Deployment with GitHub Actions
 
-The workflow in `.github/workflows/master_azure-dns-updater.yml` builds the function and deploys it: to prod on every push to `master`, or to the environment you pick when you start it by hand (*Actions > Deploy to Azure Functions > Run workflow*, dev by default). The job runs in the GitHub environment of that name (*Settings > Environments*) and takes its secrets and the app name from there. It logs in to Azure with OpenID Connect as an existing user-assigned managed identity, so no deployment secret is stored in GitHub. The Bicep template doesn't create this identity.
+The workflow in `.github/workflows/master_azure-dns-updater.yml` runs the tests, builds the function and deploys it: to prod on every push to `master`, or to the environment you pick when you start it by hand (*Actions > Deploy to Azure Functions > Run workflow*, dev by default). A failing test stops the deployment. Manual runs have a *Skip the tests* checkbox; pushes always run them. The job runs in the GitHub environment of that name (*Settings > Environments*) and takes its secrets and the app name from there. It logs in to Azure with OpenID Connect as an existing user-assigned managed identity, so no deployment secret is stored in GitHub. The Bicep template doesn't create this identity.
 
 For each environment you deploy to:
 
