@@ -23,8 +23,12 @@ param resourceGroupName string = 'rg-${appName}-${environmentName}'
 @description('Name of the Function App. Must be globally unique. Leave empty to generate one with a random suffix.')
 param functionAppName string = ''
 
-@description('Resource group with the Azure DNS zones the app updates. The app identity gets DNS Zone Contributor on it.')
+@description('Resource group with the Azure DNS zones the app updates.')
 param dnsZoneResourceGroupName string
+
+@description('Hostnames the app may update, for example home.contoso.com. Each needs an existing A record in a zone in dnsZoneResourceGroupName. The app identity gets DNS Zone Contributor on each record set and no access to the rest of the zones, so the app answers nohost for every other hostname.')
+@minLength(1)
+param dnsHostnames string[]
 
 @description('Subscription that holds the DNS zones. Defaults to the subscription you deploy to.')
 param dnsZoneSubscriptionId string = subscription().subscriptionId
@@ -62,6 +66,15 @@ var tags = {
   environment: environmentName
 }
 
+// Like the app, take the zone from the last two labels: home.contoso.com is record home in zone contoso.com.
+var hostnameLabels = [for hostname in dnsHostnames: split(trim(hostname), '.')]
+var dnsRecords = [
+  for labels in hostnameLabels: {
+    zoneName: join(skip(labels, length(labels) - 2), '.')
+    recordName: join(take(labels, length(labels) - 2), '.')
+  }
+]
+
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
@@ -79,6 +92,7 @@ module app 'modules/app.bicep' = {
     tags: tags
     dnsZoneResourceGroupName: dnsZoneResourceGroupName
     dnsZoneSubscriptionId: dnsZoneSubscriptionId
+    dnsRecords: dnsRecords
     dyndnsUser: dyndnsUser
     dyndnsSecret: dyndnsSecret
     keyVaultSoftDeleteRetentionInDays: keyVaultSoftDeleteRetentionInDays

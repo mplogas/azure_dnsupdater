@@ -29,7 +29,7 @@ namespace DNSUpdater.Library.Services
             try
             {
                 var domain = DisectFqdn(fqdn);
-                return await GetRecordSet(domain) != null;
+                return await GetARecord(domain) != null;
             }
             catch (Exception e)
             {
@@ -44,17 +44,10 @@ namespace DNSUpdater.Library.Services
             try
             {
                 var domain = DisectFqdn(fqdn);
-                var record = await GetRecordSet(domain);
+                var record = await GetARecord(domain);
 
                 if (record == null)
                     return UpdateStatus.nohost;
-
-                if (record.ResourceType != DnsARecordResource.ResourceType)
-                {
-                    this.logger.LogWarning(
-                        $"Tried to update a non-A record. RecordType {record.ResourceType.GetLastType()}, domain: {domain.fqdn}, ip: {ip}");
-                    return UpdateStatus.nohost;
-                }
 
                 var address = IPAddress.Parse(ip);
                 if (record.DnsARecords.Any(r => address.Equals(r.IPv4Address)))
@@ -104,11 +97,23 @@ namespace DNSUpdater.Library.Services
             return this.client.GetDnsZoneResource(zoneId);
         }
 
-        private async Task<DnsRecordData?> GetRecordSet(Domain domain)
+        /// <summary>
+        /// Reads the A record set directly instead of listing the zone, so the app identity only needs
+        /// a role on the record sets it may update. Returns null for a missing A record or zone (404),
+        /// and for a record set the identity has no role on (403).
+        /// </summary>
+        private async Task<DnsARecordData?> GetARecord(Domain domain)
         {
-            //fqdn are returned with a tailing dot, read: as proper fqdn
-            return await GetDnsZone(domain).GetAllRecordDataAsync().FirstOrDefaultAsync(r =>
-                string.Equals(r.Fqdn, domain.fqdn + ".", StringComparison.InvariantCultureIgnoreCase));
+            try
+            {
+                var record = await GetDnsZone(domain).GetDnsARecords().GetAsync(domain.subdomain);
+                return record.Value.Data;
+            }
+            catch (RequestFailedException e) when (e.Status is 403 or 404)
+            {
+                this.logger.LogWarning($"No A record the app may update. Domain: {domain.fqdn}, status: {e.Status} {e.ErrorCode}");
+                return null;
+            }
         }
 
         private struct Domain

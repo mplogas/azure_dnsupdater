@@ -11,12 +11,10 @@ public class AzureDnsServiceTests
 {
     private readonly FakeAzureDns azure = new();
 
-    [Theory]
-    [InlineData("Microsoft.Network/dnszones/A")]
-    [InlineData("Microsoft.Network/dnsZones/A")]
-    public async Task Update_RecordAlreadyHasIp_ReturnsNochgWithoutWriting(string recordType)
+    [Fact]
+    public async Task Update_RecordAlreadyHasIp_ReturnsNochgWithoutWriting()
     {
-        azure.AddARecord("home", ["203.0.113.10"], recordType);
+        azure.AddARecord("home", ["203.0.113.10"]);
 
         var result = await azure.CreateService().Update("home.example.com", "203.0.113.10");
 
@@ -69,9 +67,10 @@ public class AzureDnsServiceTests
     }
 
     [Fact]
-    public async Task Update_RecordIsNotARecord_ReturnsNohost()
+    public async Task Update_RecordOutsideIdentityScope_ReturnsNohost()
     {
-        azure.AddCnameRecord("home", "target.example.net");
+        azure.AddARecord("home", ["198.51.100.1"]);
+        azure.FailReadsWith(new RequestFailedException(403, "AuthorizationFailed"));
 
         var result = await azure.CreateService().Update("home.example.com", "203.0.113.10");
 
@@ -105,13 +104,15 @@ public class AzureDnsServiceTests
     }
 
     [Fact]
-    public async Task Update_ZoneNotFound_ReturnsOthererr()
+    public async Task Update_ReadFails_ReturnsOthererr()
     {
-        azure.FailListingWith(new RequestFailedException(404, "The resource 'example.com' was not found."));
+        azure.AddARecord("home", ["198.51.100.1"]);
+        azure.FailReadsWith(new RequestFailedException(500, "InternalServerError"));
 
         var result = await azure.CreateService().Update("home.example.com", "203.0.113.10");
 
         Assert.Equal(UpdateStatus.othererr, result);
+        await AssertNoWrite();
     }
 
     [Fact]
@@ -126,11 +127,20 @@ public class AzureDnsServiceTests
     }
 
     [Fact]
-    public async Task IsKnown_ExistingRecordOfAnyType_ReturnsTrue()
+    public async Task IsKnown_ExistingARecord_ReturnsTrue()
     {
-        azure.AddCnameRecord("alias", "target.example.net");
+        azure.AddARecord("home", ["198.51.100.1"]);
 
-        Assert.True(await azure.CreateService().IsKnown("alias.example.com"));
+        Assert.True(await azure.CreateService().IsKnown("home.example.com"));
+    }
+
+    [Fact]
+    public async Task IsKnown_RecordOutsideIdentityScope_ReturnsFalse()
+    {
+        azure.AddARecord("home", ["198.51.100.1"]);
+        azure.FailReadsWith(new RequestFailedException(403, "AuthorizationFailed"));
+
+        Assert.False(await azure.CreateService().IsKnown("home.example.com"));
     }
 
     [Theory]

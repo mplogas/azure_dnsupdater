@@ -3,6 +3,8 @@
 
 targetScope = 'resourceGroup'
 
+import { dnsARecord } from 'dns-record-contributor.bicep'
+
 param environmentName string
 param location string
 param appName string
@@ -13,6 +15,7 @@ param functionAppName string
 
 param dnsZoneResourceGroupName string
 param dnsZoneSubscriptionId string
+param dnsRecords dnsARecord[]
 param dyndnsUser string
 
 @secure()
@@ -165,12 +168,13 @@ resource secretReaderRoleAssignment 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-module dnsAccess 'dns-zone-contributor.bicep' = {
-  name: 'dns-zone-contributor-${environmentName}'
+module dnsAccess 'dns-record-contributor.bicep' = {
+  name: 'dns-record-contributor-${environmentName}'
   scope: resourceGroup(dnsZoneSubscriptionId, dnsZoneResourceGroupName)
   params: {
     principalId: appIdentity.properties.principalId
     identityResourceId: appIdentity.id
+    records: dnsRecords
   }
 }
 

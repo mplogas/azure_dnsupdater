@@ -14,7 +14,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution", "Solution", "{AC818C65-A163-4AC3-87BF-35142D0F6E31}"
 	ProjectSection(SolutionItems) = preProject
 		infra\main.bicep = infra\main.bicep
-		infra\modules\dns-zone-contributor.bicep = infra\modules\dns-zone-contributor.bicep
+		infra\modules\dns-record-contributor.bicep = infra\modules\dns-record-contributor.bicep
 		infra\prod.bicepparam = infra\prod.bicepparam
 		infra\dev.bicepparam = infra\dev.bicepparam
 		.github\workflows\codeql-analysis.yml = .github\workflows\codeql-analysis.yml
@@ -22,6 +22,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution", "Solution", "{AC
 		.gitignore = .gitignore
 		infra\modules\app.bicep = infra\modules\app.bicep
 		.github\workflows\infra.yml = .github\workflows\infra.yml
+		.github\scripts\mask-dns-hostnames.sh = .github\scripts\mask-dns-hostnames.sh
 		README.md = README.md
 	EndProjectSection
 EndProject

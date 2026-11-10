@@ -1,8 +1,9 @@
-using System.ClientModel.Primitives;
+using System.Net;
 using Azure;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Dns;
 using Azure.ResourceManager.Dns.Mocking;
+using Azure.ResourceManager.Dns.Models;
 using DNSUpdater.Library.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -12,20 +13,19 @@ using NSubstitute.ExceptionExtensions;
 namespace DNSUpdater.Tests;
 
 /// <summary>
-/// An in-memory stand-in for one Azure DNS zone, wired into a substitute <see cref="ArmClient"/>.
+/// An in-memory stand-in for the A records of one Azure DNS zone, wired into a substitute <see cref="ArmClient"/>.
 /// </summary>
 internal sealed class FakeAzureDns
 {
     public const string SubscriptionId = "00000000-0000-0000-0000-000000000001";
     public const string ResourceGroup = "dns-rg";
 
-    private readonly List<DnsRecordData> records = new();
-    private Exception? listFailure;
+    // Azure DNS record set names are case-insensitive.
+    private readonly Dictionary<string, DnsARecordData> aRecords = new(StringComparer.OrdinalIgnoreCase);
+    private Exception? readFailure;
 
     public FakeAzureDns(string zoneName = "example.com")
     {
-        ZoneName = zoneName;
-
         // ArmClient extension methods such as GetDnsZoneResource go through GetCachedClient,
         // which is virtual so tests can hand out a mockable client.
         var mockableClient = Substitute.For<MockableDnsArmClient>();
@@ -34,14 +34,13 @@ internal sealed class FakeAzureDns
         var zoneId = DnsZoneResource.CreateResourceIdentifier(SubscriptionId, ResourceGroup, zoneName);
         mockableClient.GetDnsZoneResource(zoneId).Returns(Zone);
 
-        Zone.GetAllRecordDataAsync(Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => AsyncPageable<DnsRecordData>.FromPages(ListPages()));
         Zone.GetDnsARecords().Returns(ARecords);
+        ARecords.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => GetARecord(call.Arg<string>()));
         ARecords.CreateOrUpdateAsync(default, default!, default!, default, default, default)
             .ReturnsForAnyArgs(Substitute.For<ArmOperation<DnsARecordResource>>());
     }
 
-    public string ZoneName { get; }
     public ArmClient Client { get; } = Substitute.For<ArmClient>();
     public DnsZoneResource Zone { get; } = Substitute.For<DnsZoneResource>();
     public DnsARecordCollection ARecords { get; } = Substitute.For<DnsARecordCollection>();
@@ -55,48 +54,35 @@ internal sealed class FakeAzureDns
         return new AzureDnsService(Client, SubscriptionId, config, NullLogger<AzureDnsService>.Instance);
     }
 
-    /// <summary>Adds an A record set, using the JSON shape the Azure DNS REST API returns.</summary>
-    public void AddARecord(string name, string[] ipv4Addresses, string type = "Microsoft.Network/dnszones/A")
+    /// <summary>Adds an A record set with the given name relative to the zone.</summary>
+    public void AddARecord(string name, string[] ipv4Addresses)
     {
-        var addresses = string.Join(",", ipv4Addresses.Select(ip => $$"""{ "ipv4Address": "{{ip}}" }"""));
-        AddRecord(name, type, $$"""{ "TTL": 3600, "fqdn": "{{name}}.{{ZoneName}}.", "ARecords": [ {{addresses}} ] }""");
+        var data = new DnsARecordData { TtlInSeconds = 3600 };
+        foreach (var ip in ipv4Addresses)
+            data.DnsARecords.Add(new DnsARecordInfo { IPv4Address = IPAddress.Parse(ip) });
+        aRecords[name] = data;
     }
 
-    public void AddCnameRecord(string name, string target)
-    {
-        AddRecord(name, "Microsoft.Network/dnszones/CNAME",
-            $$"""{ "TTL": 3600, "fqdn": "{{name}}.{{ZoneName}}.", "CNAMERecord": { "cname": "{{target}}" } }""");
-    }
-
-    /// <summary>Makes listing the zone fail the way the SDK does for a missing zone.</summary>
-    public void FailListingWith(Exception exception) => listFailure = exception;
+    /// <summary>Makes every read of an A record set fail, for example with the 403 Azure returns outside the identity's scope.</summary>
+    public void FailReadsWith(Exception exception) => readFailure = exception;
 
     /// <summary>Makes every write to an A record set fail.</summary>
     public void FailWritesWith(Exception exception) =>
         ARecords.CreateOrUpdateAsync(default, default!, default!, default, default, default)
             .ThrowsAsyncForAnyArgs(exception);
 
-    private void AddRecord(string name, string type, string propertiesJson)
+    // Faults the returned task instead of throwing, as the SDK's async methods do.
+    private Task<Response<DnsARecordResource>> GetARecord(string name)
     {
-        var shortType = type[(type.LastIndexOf('/') + 1)..];
-        var json = $$"""
-            {
-              "id": "/subscriptions/{{SubscriptionId}}/resourceGroups/{{ResourceGroup}}/providers/Microsoft.Network/dnszones/{{ZoneName}}/{{shortType}}/{{name}}",
-              "name": "{{name}}",
-              "type": "{{type}}",
-              "etag": "00000000-0000-0000-0000-000000000000",
-              "properties": {{propertiesJson}}
-            }
-            """;
-        records.Add(ModelReaderWriter.Read<DnsRecordData>(BinaryData.FromString(json))!);
-    }
+        if (readFailure != null)
+            return Task.FromException<Response<DnsARecordResource>>(readFailure);
 
-    // An iterator, so a configured failure is thrown while enumerating, as with the real SDK.
-    private IEnumerable<Page<DnsRecordData>> ListPages()
-    {
-        if (listFailure != null)
-            throw listFailure;
+        if (!aRecords.TryGetValue(name, out var data))
+            return Task.FromException<Response<DnsARecordResource>>(
+                new RequestFailedException(404, $"The resource record '{name}' does not exist."));
 
-        yield return Page<DnsRecordData>.FromValues(records.ToList(), null, Substitute.For<Response>());
+        var resource = Substitute.For<DnsARecordResource>();
+        resource.Data.Returns(data);
+        return Task.FromResult(Response.FromValue(resource, Substitute.For<Response>()));
     }
 }

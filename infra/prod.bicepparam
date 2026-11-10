@@ -10,6 +10,10 @@ param functionAppName = 'azure-dnsupdater-v2-prod'
 // are in a different subscription than the one you deploy to.
 param dnsZoneResourceGroupName = 'dns'
 
+// Comma-separated hostnames the app may update, from the DNS_HOSTNAMES secret of the GitHub environment,
+// so the public repo doesn't point at them.
+param dnsHostnames = split(readEnvironmentVariable('DNS_HOSTNAMES'), ',')
+
 // Principal ID of the existing identity the GitHub workflow deploys with.
 // Leave empty if it already has access to this resource group through a broader scope.
 param githubDeployPrincipalId = ''

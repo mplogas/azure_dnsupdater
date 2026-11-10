@@ -11,6 +11,7 @@ DynDNS for domains hosted in Azure DNS. An Azure Function accepts update request
 Limitations:
 
 - Only **existing A records** are updated. Create the record once in Azure DNS (with any IP) before using it.
+- The app reads and writes a record only if its identity has a role on it. The Bicep template grants one per hostname in `DNS_HOSTNAMES`, so every other hostname gets `nohost`.
 - The zone is taken from the last two labels of the hostname: `home.example.com` updates zone `example.com`. Zones like `example.co.uk` aren't supported.
 - IPv4 only, one hostname per request.
 - An update replaces all IPs in the record set with `myip` and sets the TTL to 300 seconds.
@@ -49,7 +50,7 @@ Use the **Default domain** shown on the Function App's overview page (or the `fu
 
 ### 1. DNS zone and record
 
-Create the DNS zone in Azure DNS (if it doesn't exist yet) and add an A record for each hostname you want to update. The IP doesn't matter, the first update replaces it.
+Create the DNS zone in Azure DNS (if it doesn't exist yet) and add an A record for each hostname you want to update. The IP doesn't matter, the first update replaces it. The records must exist before the infrastructure deployment, because it grants access to each of them.
 
 ### 2. Infrastructure
 
@@ -61,7 +62,7 @@ Create the DNS zone in Azure DNS (if it doesn't exist yet) and add an A record f
 - a storage account for the Functions host and the deployment package, used without account keys
 - Application Insights with a Log Analytics workspace
 - a Key Vault (RBAC mode) with the DynDNS password. The app setting only holds a Key Vault reference, and the app identity can read this one secret and nothing else in the vault.
-- the **DNS Zone Contributor** role for the app identity on the resource group with your DNS zones, so the app needs no service principal or client secret
+- the **DNS Zone Contributor** role for the app identity on the A record set of each hostname in `DNS_HOSTNAMES`, so the app needs no service principal or client secret and can't read or change any other record in your zones
 - optionally, the **Website Contributor** role on the Function App for your existing GitHub deploy identity (see step 3)
 
 The per-environment values are in `infra/prod.bicepparam` and `infra/dev.bicepparam`. Before the first deployment, set `dnsZoneResourceGroupName` in both files to the resource group that holds your DNS zones, and `dnsZoneSubscriptionId` if that resource group is in a different subscription than the one you deploy to. `functionAppName` sets the Function App's name, which must be unique across Azure; without it the template generates one. Also check `location`: not every region offers Flex Consumption, `az functionapp list-flexconsumption-locations` lists the ones that do.
@@ -71,7 +72,12 @@ The account that deploys needs:
 - on the subscription you deploy to: Contributor plus Role Based Access Control Administrator (or Owner), to create the resource group, the resources and their role assignments
 - on the DNS resource group: Role Based Access Control Administrator, plus permission to create deployments there (`Microsoft.Resources/deployments/write`, which DNS Zone Contributor includes). If the zones are in the subscription you deploy to, the subscription roles already cover this.
 
-The param files read the DynDNS credentials your router sends from `DYNDNS_USER` and `DYNDNS_SECRET`, for example from a git-ignored `.env` file:
+The param files read the values that shouldn't be in the repository from environment variables:
+
+- `DYNDNS_USER` and `DYNDNS_SECRET`: the DynDNS credentials your router sends
+- `DNS_HOSTNAMES`: comma-separated hostnames the app may update, for example `home.example.com`. Each needs an existing A record; the zone is the last two labels, as in the app.
+
+For example from a git-ignored `.env` file:
 
 ```sh
 set -a; source .env; set +a
@@ -157,7 +163,7 @@ Setup:
    done
    ```
 
-3. Give both GitHub environments, `dev` and `prod`, the secrets `DYNDNS_USER` and `DYNDNS_SECRET`.
+3. Give both GitHub environments, `dev` and `prod`, the secrets `DYNDNS_USER`, `DYNDNS_SECRET` and `DNS_HOSTNAMES`. The hostnames are a secret rather than a variable so they don't show up in the logs of a public repository; the workflow also masks them where the what-if output shows them as part of a resource ID.
 4. Add `AZURE_IAC_CLIENT_ID` (the identity's client ID), `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` as secrets of each environment, so dev and prod can use different subscriptions and identities.
 
 The workflow records the deployment in `westeurope` (`DEPLOYMENT_LOCATION`); the resources use the `location` from the param file.
@@ -199,6 +205,13 @@ Locally there is no managed identity, so the Console app, `func start` and the l
    You can verify the assignment with the *Check access* tab:
 
    ![Check access showing the DNS Zone Contributor assignment](https://user-images.githubusercontent.com/842121/170866976-4086bbe0-ec17-4c70-a326-413fe17baf3a.png)
+
+   To limit it to a single record, as the Bicep template does for the app identity, assign the role on the record set with the CLI instead:
+
+   ```sh
+   az role assignment create --assignee <client id> --role "DNS Zone Contributor" \
+     --scope "$(az network dns record-set a show -g <resource group> -z <zone> -n <record name> --query id -o tsv)"
+   ```
 
 ### Secrets
 

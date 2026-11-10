@@ -35,9 +35,15 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      DNS_HOSTNAMES: ${{ secrets.DNS_HOSTNAMES }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Mask DNS hostnames
+        shell: bash
+        run: .github/scripts/mask-dns-hostnames.sh
 
       - name: Log in to Azure
         uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
@@ -69,9 +75,14 @@ jobs:
       cancel-in-progress: false
     env:
       ENVIRONMENT: ${{ inputs.environment }}
+      DNS_HOSTNAMES: ${{ secrets.DNS_HOSTNAMES }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Mask DNS hostnames
+        shell: bash
+        run: .github/scripts/mask-dns-hostnames.sh
 
       - name: Log in to Azure
         uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
