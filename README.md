@@ -168,6 +168,24 @@ Setup:
 
 The workflow records the deployment in `westeurope` (`DEPLOYMENT_LOCATION`); the resources use the `location` from the param file.
 
+### 5. Custom domain (optional)
+
+The template can bind a custom host name such as `dyndns.example.com` with a TLS certificate from Key Vault, for example one that [Key Vault Acmebot](https://github.com/shibayan/keyvault-acmebot) issues and renews. On Flex Consumption the certificate is site-scoped, so it belongs to this app only. It's imported without a version, so App Service picks up renewals from Key Vault by itself.
+
+1. Put a certificate that covers the host name into a Key Vault (a wildcard certificate works).
+2. Let the App Service resource provider read it. This is a platform service principal, not the app's identity, and the grant is needed once per vault:
+
+   ```sh
+   az role assignment create --role "Key Vault Certificate User" \
+     --assignee abfa0a7c-a6b6-4736-8310-5855508787cd --scope <key vault resource id>
+   ```
+
+3. Add the TXT record `asuid.<subdomain>` with the app's custom domain verification ID (`az functionapp show -g <resource group> -n <app> --query customDomainVerificationId`).
+4. Set `CUSTOM_DOMAIN` (the host name), `CUSTOM_DOMAIN_KEY_VAULT_ID` (the vault's resource ID) and `CUSTOM_DOMAIN_CERTIFICATE` (the certificate name), as secrets of the GitHub environment or as environment variables for a local deployment, and deploy.
+5. Point a CNAME for the host name at `<app>.azurewebsites.net`.
+
+The binding only needs the TXT record, so you can move a host name from another app without downtime: deploy first, test with `curl --connect-to <host name>:443:<app>.azurewebsites.net:443 ...`, then switch the CNAME. This works as long as the other app runs in a different region (scale unit); App Service doesn't allow the same host name on two apps in the same one.
+
 ### Configuration reference
 
 The app reads these settings. In Azure the Bicep template sets them, locally they come from user secrets (see below).

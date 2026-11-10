@@ -48,6 +48,15 @@ param keyVaultSoftDeleteRetentionInDays int = 90
 @description('Principal ID of the existing identity GitHub Actions deploys with. Gets Website Contributor on the Function App. Leave empty if it already has access through a broader scope.')
 param githubDeployPrincipalId string = ''
 
+@description('Optional custom host name for the app, for example dyndns.contoso.com. Empty uses only the default *.azurewebsites.net host name.')
+param customDomainName string = ''
+
+@description('Resource ID of the Key Vault with the TLS certificate for customDomainName. The App Service resource provider needs Key Vault Certificate User on it.')
+param customDomainKeyVaultId string = ''
+
+@description('Name of the certificate in that Key Vault, for example a wildcard certificate that acmebot renews.')
+param customDomainCertificateName string = ''
+
 @description('Maximum number of instances (1 to 1000).')
 @minValue(1)
 @maxValue(1000)
@@ -97,6 +106,9 @@ module app 'modules/app.bicep' = {
     dyndnsSecret: dyndnsSecret
     keyVaultSoftDeleteRetentionInDays: keyVaultSoftDeleteRetentionInDays
     githubDeployPrincipalId: githubDeployPrincipalId
+    customDomainName: customDomainName
+    customDomainKeyVaultId: customDomainKeyVaultId
+    customDomainCertificateName: customDomainCertificateName
     maximumInstanceCount: maximumInstanceCount
     instanceMemoryMB: instanceMemoryMB
   }

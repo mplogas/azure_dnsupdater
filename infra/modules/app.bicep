@@ -23,6 +23,9 @@ param dyndnsSecret string
 
 param keyVaultSoftDeleteRetentionInDays int
 param githubDeployPrincipalId string
+param customDomainName string
+param customDomainKeyVaultId string
+param customDomainCertificateName string
 param maximumInstanceCount int
 param instanceMemoryMB int
 
@@ -303,6 +306,17 @@ resource deployRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-0
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.websiteContributor)
     principalId: githubDeployPrincipalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+module customDomain 'custom-domain.bicep' = if (!empty(customDomainName)) {
+  name: 'custom-domain-${environmentName}'
+  params: {
+    functionAppName: functionApp.name
+    location: location
+    hostName: customDomainName
+    keyVaultId: customDomainKeyVaultId
+    certificateName: customDomainCertificateName
   }
 }
 
